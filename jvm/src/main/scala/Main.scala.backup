@@ -1,0 +1,140 @@
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.SparkContext._
+import org.apache.log4j.Logger;
+import org.apache.log4j.Level;
+import scala.io.StdIn.readLine
+import scala.collection.mutable.ArrayBuffer
+
+//import org.apache.spark.ml._
+
+// object HiveTest5 {
+
+//   def main(args: Array[String]): Unit = {
+//     println("logging")
+//     var input = readLine("whatever: ")
+//     var inputBranch = input.split(",")
+//     println(inputBranch)
+
+//     var branchInput1 = "Branch"+inputBranch(0)
+//     var branchInput2 = "Branch"+inputBranch(1)
+
+//     var branchInput1String = branchInput1.toString()
+//     var branchInput2String = branchInput2.toString()
+
+//     println(s"First branch is: $branchInput1\nSecond branch is: $branchInput2")
+
+//     // for (i <- 0 to inputBranch.length-1) {
+//     //   var s = "Branch".inputBranch(i)
+//     //   inputBranch(i)
+//     // }
+
+//   }
+// }
+
+
+object HiveTest5 {
+
+  def main(args: Array[String]): Unit = {
+    System.setProperty("hadoop.home.dir", "C:\\hadoop")
+    //System.setProperty("hive.root.logger", "console")
+    //System.setProperty("log4j.rootCategory", "WARN, console")
+
+    
+    //Logger.getRootLogger().setLevel(Level.OFF);
+    
+    val spark1 = SparkSession.builder()
+    .appName("HiveTest5")
+    .config("spark.master", "local")
+    .enableHiveSupport()
+    .getOrCreate()
+    spark1.sparkContext.setLogLevel("ERROR")
+    println("created spark session")
+
+    //spark.sql("CREATE TABLE IF NOT EXISTS src (key INT, value STRING) USING hive")
+    //spark.sql("CREATE TABLE IF NOT EXISTS src(key INT, value STRING) ROW FORMAT DELIMITED FIELDS TERMINATED BY ‘,’ STORED AS TEXTFILE")
+    //spark.sql("LOAD DATA LOCAL INPATH 'input/kv1.txt' INTO TABLE src")
+    //spark.sql("CREATE TABLE IF NOT EXISTS src (key INT,value STRING) USING hive")
+    spark1.sql("create table if not exists newone2(id Int,name String) row format delimited fields terminated by ','");
+    spark1.sql("LOAD DATA LOCAL INPATH 'input/kv1.txt' OVERWRITE INTO TABLE newone2")
+    spark1.sql("SELECT * FROM newone2").show()
+    spark1.sql("SELECT * FROM newone2 WHERE id=23").show()
+
+    def questionTwo(): Unit = {
+      var input = readLine("input a menu number")
+      if (input=="1") {
+        var b = "Branch"+input
+        //prints out two tables, first showing branch intersections
+        //second is the top 3 of most consumed
+        spark1.sql("CREATE VIEW BRANCH_BEVERAGES AS SELECT beverages, common_br FROM (SELECT beverages, collect_set(branches) as common_br FROM BranchesA group by beverages)where array_contains(common_br, 'Branch1')")
+        spark1.sql("SELECT * FROM BRANCH_BEVERAGES").show(60, false) 
+        spark1.sql("SELECT CountA.beverages, sum(CountA.count) as beverage_sum FROM BRANCH_BEVERAGES JOIN CountA ON BRANCH_BEVERAGES.beverages= CountA.beverages group by CountA.beverages order by beverage_sum desc").show(3)
+        /*
+        //#2
+        ("select CountA.beverages, sum(CountA.count) as beverage_sum from BranchesA Join CountA on BranchesA.beverages=CountA.beverages where BranchesA.branches='Branch1' group by CountA.beverages order by beverages_sum desc ")
+      
+        spark1.sql("SELECT beverages, common_br FROM (SELECT beverages, collect_set(branches) as common_br FROM BranchesA group by beverages)where array_contains(common_br, 'Branch1')").show(60, false)
+        spark1.sql("SELECT sum(CountA.count) as Total_Consumers FROM  BranchesA JOIN CountA ON BranchesA.beverages= CountA.beverages WHERE BranchesA.branches = 'Branch1'").show()
+
+        */
+      }
+    }
+
+
+
+    def deleteRowNoParams(): Unit = {
+      //create copy table
+      spark1.sql("CREATE TABLE IF NOT EXISTS newone2_copy LIKE newone2")
+      //load data into copy table except deleted item
+      spark1.sql("INSERT INTO newone2_copy SELECT * FROM newone2 WHERE name NOT IN (SELECT name FROM newone2 WHERE name='varun')")
+      //overwrite copy table to original table
+      spark1.sql("INSERT OVERWRITE TABLE newone2 SELECT * FROM newone2_copy")
+      //drop copy table
+      spark1.sql("DROP TABLE newone2_copy")
+      //show new table with deleted row
+      spark1.sql("SELECT * FROM newone2").show(5)
+    }
+
+    def deleteRow(table: String, key: String, value: String): Unit = {
+      val table_copy: String = table+"_copy"
+      //create copy table
+      spark1.sql(s"CREATE TABLE IF NOT EXISTS $table_copy LIKE newone2")
+      //load data into copy table except deleted item
+      spark1.sql(s"INSERT INTO $table_copy SELECT * FROM $table WHERE $key NOT IN (SELECT $key FROM $table WHERE $key='$value')")
+      //overwrite copy table to original table
+      spark1.sql(s"INSERT OVERWRITE TABLE $table SELECT * FROM $table_copy")
+      //drop copy table
+      spark1.sql(s"DROP TABLE $table_copy")
+      //show new table with deleted row
+      spark1.sql(s"SELECT * FROM $table").show(5)
+    }
+
+    //spark1.conf.set("hive.exec.dynamic.partition.mode", "nonstrict")
+    
+    //spark.sql("CREATE TABLE IF NOT EXISTS BranchA(coffee STRING, branch STRING) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE")
+    //spark.sql("LOAD DATA LOCAL INPATH 'input/Bev_BranchA.txt' INTO TABLE BranchA")
+    //spark.sql("CREATE TABLE IF NOT EXISTS CountA(coffee STRING, count INT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE")
+    //spark.sql("LOAD DATA LOCAL INPATH 'input/Bev_ConscountA.txt' OVERWRITE INTO TABLE CountA")
+    //spark.sql("SELECT * FROM BranchA").show()
+    //println(spark.sql("SELECT * FROM CountA").getClass())
+    //spark.sql("SELECT * FROM CountA WHERE count=144").show()
+    //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+    //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+    //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+
+    /*
+    // Solution #3 or #4
+    var b1 = "Branch"+inputBranch(0)
+    var b2 = "Branch"+inputBranch(1)
+    spark1.sql(s"CREATE VIEW ALL_AVAILABLE_BEVERAGES AS SELECT beverages FROM Partitioned WHERE branches = '$b1' UNION SELECT beverages FROM Partitioned WHERE branches = '$b2'")
+    spark1.sql("SELECT * FROM ALL_AVAILABLE_BEVERAGES").show(60)
+    spark1.sql(s"SELECT DISTINCT beverages FROM (SELECT beverages, collect_set(branches) as b FROM Partitioned group by beverages) WHERE ARRAY_CONTAINS(b, '$b1') AND ARRAY_CONTAINS(b, '$b2')").show()
+    dynamic partition: spark1.sql("CREATE TABLE IF NOT EXISTS Partitioned(beverages STRING) COMMENT 'A PARTITIONED BRANCH TABLE' PARTITIONED BY (branches STRING)")
+    spark1.sql("set hive.exec.dynamic.partition.mode=nonstrict")
+    spark1.sql("INSERT OVERWRITE TABLE Partitioned PARTITION(branches) SELECT beverages,branches from Branches")
+    spark1.sql("SELECT * FROM Partitioned")
+    */
+    
+
+
+  }
+}

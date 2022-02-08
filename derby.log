@@ -1,0 +1,13 @@
+----------------------------------------------------------------
+Sun Feb 06 16:46:02 EST 2022:
+Booting Derby version The Apache Software Foundation - Apache Derby - 10.14.2.0 - (1828579): instance a816c00e-017e-d100-4161-00002e351ac8 
+on database directory C:\revenant\pone\metastore_db with class loader sbt.internal.LayeredClassLoader@4e0a3897 
+Loaded from file:/C:/revenant/pone/target/bg-jobs/sbt_9d5c673d/target/02e4a618/0b708d5e/derby-10.14.2.0.jar
+java.vendor=Oracle Corporation
+java.runtime.version=11.0.13+10-LTS-370
+user.dir=C:\revenant\pone
+os.name=Windows 10
+os.arch=amd64
+os.version=10.0
+derby.system.home=null
+Database Class Loader started - derby.database.classpath=''
