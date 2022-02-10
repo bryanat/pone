@@ -6,3 +6,4 @@ metastore_db
 project
 spark-warehouse
 target
+.misc

@@ -1,4 +1,4 @@
-ThisBuild / scalaVersion := "2.13.8"
+ThisBuild / scalaVersion := "2.12.10"
 
 lazy val root = project.in(file(".")).
   aggregate(oi.js, oi.jvm).
@@ -15,10 +15,10 @@ lazy val oi = crossProject(JSPlatform, JVMPlatform).in(file(".")).
   ).
   jvmSettings(
     // Add JVM-specific settings here
-    libraryDependencies += "org.apache.spark" %%% "spark-core" % "3.2.1",
-    libraryDependencies += "org.apache.spark" %%% "spark-sql" % "3.2.1",
-    libraryDependencies += "org.apache.spark" %%% "spark-hive" % "3.2.1",
-    libraryDependencies += "org.apache.spark" %% "spark-streaming" % "3.2.1"
+    libraryDependencies += "org.apache.spark" %%% "spark-core" % "3.1.2",
+    libraryDependencies += "org.apache.spark" %%% "spark-sql" % "3.1.2",
+    libraryDependencies += "org.apache.spark" %%% "spark-hive" % "3.1.2",
+    libraryDependencies += "org.apache.spark" %%% "spark-streaming" % "3.1.2"
  
   ).
   jsSettings(

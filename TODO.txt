@@ -1,3 +1,0 @@
-install nvm
-get js compiler to print a string in console
-copy paste d3.js template and just get it to show
