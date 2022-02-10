@@ -15,6 +15,12 @@ Realtime = High Data Velocity
 
 ===================================
 
+
+
+init22
+
+
+
 == More Advanced next step after MVP ==
 
 Create MVP on CLI first then attemp cross-build:
