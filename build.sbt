@@ -11,7 +11,7 @@ lazy val oi = crossProject(JSPlatform, JVMPlatform).in(file(".")).
     name := "P1",
     version := "0.1-SNAPSHOT",
     libraryDependencies += "org.scala-lang.modules" %%% "scala-parser-combinators" % "1.1.2"
-    
+    //libraryDependencies += "org.singlespaced" %%% "scalajs-d3" % "0.3.4"
   ).
   jvmSettings(
     // Add JVM-specific settings here
@@ -19,13 +19,14 @@ lazy val oi = crossProject(JSPlatform, JVMPlatform).in(file(".")).
     libraryDependencies += "org.apache.spark" %%% "spark-sql" % "3.1.2",
     libraryDependencies += "org.apache.spark" %%% "spark-hive" % "3.1.2",
     libraryDependencies += "org.apache.spark" %%% "spark-streaming" % "3.1.2",
-    libraryDependencies += "org.apache.spark" %%% "spark-mllib" % "3.1.2"
-
- 
-  ).
-  jsSettings(
-    // Add JS-specific settings here
-    scalaJSUseMainModuleInitializer := true,
+    libraryDependencies += "org.apache.spark" %%% "spark-mllib" % "3.1.2",
+    
+    
+    ).
+    jsSettings(
+      // Add JS-specific settings here
+      scalaJSUseMainModuleInitializer := true,
+      // libraryDependencies += "org.singlespaced" %%% "scala-js-d3" % "0.3.4"
   )
 
 

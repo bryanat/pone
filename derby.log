@@ -1,8 +1,8 @@
 ----------------------------------------------------------------
-Thu Feb 10 22:55:36 EST 2022:
-Booting Derby version The Apache Software Foundation - Apache Derby - 10.12.1.1 - (1704137): instance a816c00e-017e-e6ec-0ad4-00001f65fc00 
-on database directory C:\revenant\pone\metastore_db with class loader sbt.internal.LayeredClassLoader@8dd21ba 
-Loaded from file:/C:/revenant/pone/target/bg-jobs/sbt_9450ca2/target/bf9ee240/d4f190b2/derby-10.12.1.1.jar
+Fri Feb 11 05:11:02 EST 2022:
+Booting Derby version The Apache Software Foundation - Apache Derby - 10.12.1.1 - (1704137): instance a816c00e-017e-e843-c637-000026689ce0 
+on database directory C:\revenant\pone\metastore_db with class loader sbt.internal.LayeredClassLoader@37def0df 
+Loaded from file:/C:/revenant/pone/target/bg-jobs/sbt_8ecc16a1/target/bf9ee240/d4f190b2/derby-10.12.1.1.jar
 java.vendor=Oracle Corporation
 java.runtime.version=11.0.13+10-LTS-370
 user.dir=C:\revenant\pone

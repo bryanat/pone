@@ -1,6 +1,7 @@
 import org.apache.spark._
 import org.apache.spark.sql._
 import org.apache.spark.streaming._
+//import org.apache.spark.ml._
 
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.SparkContext._
@@ -9,10 +10,9 @@ import org.apache.log4j.Level;
 import scala.io.StdIn.readLine
 import scala.collection.mutable.ArrayBuffer
 
-//import org.apache.spark.ml._
 
 
-object Main15 {
+object MainHive {
 
   def main(args: Array[String]): Unit = {
     System.setProperty("hadoop.home.dir", "C:\\hadoop")
@@ -20,20 +20,36 @@ object Main15 {
     val dfsc = SparkSession.builder().appName("HiveTest5").config("spark.master", "local").enableHiveSupport().getOrCreate()
     dfsc.sparkContext.setLogLevel("ERROR")
     
-    
+
+    // BranchABC table contains data from all three Bev_Branch[A,B,C].txt files
     dfsc.sql("CREATE TABLE IF NOT EXISTS BranchABC(beverage STRING, branch STRING) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE")
     dfsc.sql("LOAD DATA LOCAL INPATH 'input/Bev_BranchA.txt' OVERWRITE INTO TABLE BranchABC")
     dfsc.sql("LOAD DATA LOCAL INPATH 'input/Bev_BranchB.txt' INTO TABLE BranchABC")
     dfsc.sql("LOAD DATA LOCAL INPATH 'input/Bev_BranchC.txt' INTO TABLE BranchABC")
+    // CountABC table contains data from all three Bev_Consciount[A,B,C].txt files
     dfsc.sql("CREATE TABLE IF NOT EXISTS CountABC(beverage STRING, count INT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE")
     dfsc.sql("LOAD DATA LOCAL INPATH 'input/Bev_ConscountA.txt' OVERWRITE INTO TABLE CountABC")
     dfsc.sql("LOAD DATA LOCAL INPATH 'input/Bev_ConscountB.txt' INTO TABLE CountABC")
     dfsc.sql("LOAD DATA LOCAL INPATH 'input/Bev_ConscountC.txt' INTO TABLE CountABC")
+    // BranchA table
+    dfsc.sql("CREATE TABLE IF NOT EXISTS BranchA(beverage STRING, branch STRING) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE")
+    dfsc.sql("LOAD DATA LOCAL INPATH 'input/Bev_BranchA.txt' OVERWRITE INTO TABLE BranchA")
+    // BranchB table
+    dfsc.sql("CREATE TABLE IF NOT EXISTS BranchB(beverage STRING, branch STRING) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE")
+    dfsc.sql("LOAD DATA LOCAL INPATH 'input/Bev_BranchB.txt' OVERWRITE INTO TABLE BranchB")
+    // BranchC table
+    dfsc.sql("CREATE TABLE IF NOT EXISTS BranchC(beverage STRING, branch STRING) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE")
+    dfsc.sql("LOAD DATA LOCAL INPATH 'input/Bev_BranchC.txt' OVERWRITE INTO TABLE BranchC")
+    // CountA table
+    dfsc.sql("CREATE TABLE IF NOT EXISTS CountA(beverage STRING, count INT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE")
+    dfsc.sql("LOAD DATA LOCAL INPATH 'input/Bev_ConscountA.txt' OVERWRITE INTO TABLE CountA")
+    // CountB table
+    dfsc.sql("CREATE TABLE IF NOT EXISTS CountB(beverage STRING, count INT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE")
+    dfsc.sql("LOAD DATA LOCAL INPATH 'input/Bev_ConscountB.txt' OVERWRITE INTO TABLE CountB")
+    // CountC table
+    dfsc.sql("CREATE TABLE IF NOT EXISTS CountC(beverage STRING, count INT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE")
+    dfsc.sql("LOAD DATA LOCAL INPATH 'input/Bev_ConscountC.txt' OVERWRITE INTO TABLE CountC")
     
-    dfsc.sql("SELECT * FROM BranchABC").show()
-    dfsc.sql("SELECT * FROM CountABC").show()
-    dfsc.sql("SELECT DISTINCT beverage FROM BranchABC").show()
-
 
     def init() = {
       def menu(): Unit = {
@@ -60,13 +76,13 @@ object Main15 {
         }
         finally {
           selection match {
-            case 0 => System.exit(0)            // 0 is exit
-            case 1 => {scenario1(); menu()}    // .insert()
-            case 2 => {scenario2(); menu()}    // .find()
-            case 3 => {scenario3(); menu()}    // .update()
-            case 4 => {scenario4(); menu()}    // .delete()
-            case 5 => {scenario5(); menu()}  // .find() key value
-            case 6 => {scenario6(); menu()}    // .find() but async
+            case 0 => System.exit(0)
+            case 1 => {scenario1(); menu()}     
+            case 2 => {scenario2(); menu()}
+            case 3 => {scenario3(); menu()}
+            case 4 => {scenario4(); menu()}
+            case 5 => {scenario5(); menu()}
+            case 6 => {scenario6(); menu()}
             case _ => {println("Invalid number, pick a number from the menu."); menu()} // catch all for non numbers 0-7, recursive menu() call to loop 
           }
         }
@@ -74,7 +90,6 @@ object Main15 {
       menu() 
     }
     init()
-
 
 
     def scenario1(): Unit = {
@@ -191,7 +206,48 @@ object Main15 {
     def scenario6(): Unit = {
       // Problem Scenario 6
       // Add future query
-      
+
+      // First generate a list of all 54 beverages
+      // 
+      var dfres = dfsc.sql("SELECT DISTINCT beverage FROM BranchABC").collect()
+      // Create an empty array, that will end up holding the name of each beverage 
+      var beverageArray: ArrayBuffer[String] = ArrayBuffer[String]()
+      // Generate an array containing each beverage name 
+      dfres.foreach( row => {
+        // Add each row to the beverage array after converting it to a string 
+        beverageArray += row.get(0).toString()
+      })
+      beverageArray.length //54 Beverages
+
+      // A little trick to turn an Array into comma separate strings
+      var The54MinusEndQuotes = beverageArray.mkString("\",\"")
+
+      var The54Seq = beverageArray.toSeq
+
+      println("ibdsjfsdjfbk")
+      // The 54 Beverages
+      val The54Beverages = Seq(The54MinusEndQuotes)
+      The54Seq.foreach(beverage => {
+        println(beverage)
+      })
+      println(The54Beverages)
+      println("ibdsjfsdjfbk")
+
+      println("ahhhhhhh")
+      beverageArray.foreach(beverage => {
+        println(beverage)
+      })
+      println("ahhhhhhhHHH")
+
+      var bevarageMap = beverageArray.map(beverage => (beverage, 0)).toMap
+      bevarageMap
+      println("OOOOOOOOxxxxOOOOOOOOOOO")
+      println(bevarageMap)
+      println("HJBAKHDBUSHAUY")
+      println(bevarageMap.getClass())
+
+
+
     }
       
 
@@ -254,26 +310,6 @@ object Main15 {
 
 
 
-/*
-    println("xxxxxxxxxxxxxxxxxxxxx")
-    val sc = new SparkContext("local[2]", "AppName")
-    sc.setLogLevel("ERROR")
-    sc.parallelize(Seq((1,3,4),(6,4,2),(6,4,9),(2,5,8),(4,1,3)))
-    println(sc.parallelize(Seq((1,3,4),(6,4,2),(6,4,9),(2,5,8),(4,1,3))))
-    println("yyyyyyyyyyyyyyyyyyyy")
-    //val df3 = df5.toDF("col1", "col2", "col3")
-    //val df5 = 
-  
-    .
-    .
-    .
-    .
-    .
-    .
-    .
-    .
-*/
-
 
 /*
     val file = Source.fromFile("input/CountACut.txt")
@@ -294,6 +330,7 @@ object Main15 {
     })
     println(joined.getClass())
 */
+
 /*
     val textFile = sc.textFile("input/SparkWordCountData")
 
@@ -305,24 +342,6 @@ object Main15 {
 
 
 /*
-    /////////////////////////////////////////////////
-    
-    val spark = SparkSession.builder
-    .master("local[*]")
-    .appName("Spark Word Count")
-    .getOrCreate()
-    
-
-    // val data = DataStreamReader.csv("input/rtdata/countA/day1.csv")
-    // val data1 = DataFrameReader.csv("input/rtdata/countA/day1.csv")
-
-    // val data1 = spark.read.csv("input/rtdata/countA/day1.csv")
-
-    
-    val lines = sc.parallelize(
-      Seq("Spark Intellij Idea Scala test one",
-        "Spark Intellij Idea Scala test two",
-        "Spark Intellij Idea Scala test three"))
 
     val counts = lines
       .flatMap(line => line.split(" "))
@@ -353,43 +372,6 @@ object Main15 {
 
     ///////////////////////////////////////////////
 */
-
-
-
-/*
-    System.setProperty("hadoop.home.dir", "C:\\hadoop")
-    
-    //Logger.getRootLogger().setLevel(Level.OFF);
-    
-    val dfsc = SparkSession.builder()
-    .appName("HiveTest5")
-    .config("spark.master", "local")
-    .enableHiveSupport()
-    .getOrCreate()
-    
-    dfsc.sparkContext.setLogLevel("ERROR")
-    println("created spark session")
-    //spark.sql("CREATE TABLE IF NOT EXISTS src (key INT, value STRING) USING hive")
-    //spark.sql("CREATE TABLE IF NOT EXISTS src(key INT, value STRING) ROW FORMAT DELIMITED FIELDS TERMINATED BY ‘,’ STORED AS TEXTFILE")
-    //spark.sql("LOAD DATA LOCAL INPATH 'input/kv1.txt' INTO TABLE src")
-    //spark.sql("CREATE TABLE IF NOT EXISTS src (key INT,value STRING) USING hive")
-    dfsc.sql("create table if not exists newone2(id Int,name String) row format delimited fields terminated by ','");
-    dfsc.sql("LOAD DATA LOCAL INPATH 'input/kv1.txt' OVERWRITE INTO TABLE newone2")
-    dfsc.sql("SELECT * FROM newone2").show()
-    dfsc.sql("SELECT * FROM newone2 WHERE id=23").show()
-*/
-
-
-
-
-
-
-
-
-
-
-
-
 
 
   }
