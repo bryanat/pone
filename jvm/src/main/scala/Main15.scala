@@ -14,30 +14,25 @@ import scala.collection.mutable.ArrayBuffer
 
 object Main15 {
 
-  def main15(args: Array[String]): Unit = {
+  def main(args: Array[String]): Unit = {
     System.setProperty("hadoop.home.dir", "C:\\hadoop")
-    //System.setProperty("hive.root.logger", "console")
-    //System.setProperty("log4j.rootCategory", "WARN, console")
-    //Logger.getRootLogger().setLevel(Level.OFF);
 
-    val spark1 = SparkSession.builder()
-      .appName("HiveTest5")
-      .config("spark.master", "local")
-      .enableHiveSupport()
-      .getOrCreate()
-      spark1.sparkContext.setLogLevel("ERROR")
-      println("created spark session")
-
+    val dfsc = SparkSession.builder().appName("HiveTest5").config("spark.master", "local").enableHiveSupport().getOrCreate()
+    dfsc.sparkContext.setLogLevel("ERROR")
     
     
-    //spark.sql("CREATE TABLE IF NOT EXISTS src (key INT, value STRING) USING hive")
-    //spark.sql("CREATE TABLE IF NOT EXISTS src(key INT, value STRING) ROW FORMAT DELIMITED FIELDS TERMINATED BY ‘,’ STORED AS TEXTFILE")
-    //spark.sql("LOAD DATA LOCAL INPATH 'input/kv1.txt' INTO TABLE src")
-    //spark.sql("CREATE TABLE IF NOT EXISTS src (key INT,value STRING) USING hive")
-    spark1.sql("create table if not exists newone2(id Int,name String) row format delimited fields terminated by ','");
-    spark1.sql("LOAD DATA LOCAL INPATH 'input/kv1.txt' OVERWRITE INTO TABLE newone2")
-    spark1.sql("SELECT * FROM newone2").show()
-    spark1.sql("SELECT * FROM newone2 WHERE id=23").show()
+    dfsc.sql("CREATE TABLE IF NOT EXISTS BranchABC(beverage STRING, branch STRING) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE")
+    dfsc.sql("LOAD DATA LOCAL INPATH 'input/Bev_BranchA.txt' OVERWRITE INTO TABLE BranchABC")
+    dfsc.sql("LOAD DATA LOCAL INPATH 'input/Bev_BranchB.txt' INTO TABLE BranchABC")
+    dfsc.sql("LOAD DATA LOCAL INPATH 'input/Bev_BranchC.txt' INTO TABLE BranchABC")
+    dfsc.sql("CREATE TABLE IF NOT EXISTS CountABC(beverage STRING, count INT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE")
+    dfsc.sql("LOAD DATA LOCAL INPATH 'input/Bev_ConscountA.txt' OVERWRITE INTO TABLE CountABC")
+    dfsc.sql("LOAD DATA LOCAL INPATH 'input/Bev_ConscountB.txt' INTO TABLE CountABC")
+    dfsc.sql("LOAD DATA LOCAL INPATH 'input/Bev_ConscountC.txt' INTO TABLE CountABC")
+    
+    dfsc.sql("SELECT * FROM BranchABC").show()
+    dfsc.sql("SELECT * FROM CountABC").show()
+    dfsc.sql("SELECT DISTINCT beverage FROM BranchABC").show()
 
 
     def init() = {
@@ -48,12 +43,12 @@ object Main15 {
           |== MENU == 
           |Select a number to choose a scenario
           |0. Exit
-          |1. 
-          |2. 
-          |3. 
-          |4. 
-          |5.    
-          |6. 
+          |1. Scenario 1 - Beverages Branch Counts
+          |2. Scenario 2 - Beverages Max Min Mean
+          |3. Scenario 3 - Beverages Available
+          |4. Scenario 4 - Partition
+          |5. Scenario 5 - Note and Remove
+          |6. Scenario 6 - Future Query
           |7. Login
           |""".stripMargin) // stripMargin removes padding from the left side of the console
         var selection = 99 // default value (non 0-5)
@@ -82,15 +77,14 @@ object Main15 {
 
 
 
-
-
     def scenario1(): Unit = {
       // Problem Scenario 1 
       // What is the total number of consumers for Branch1?
       // What is the number of consumers for the Branch2?
-      // Type 1: Creating single physical table with sub queries.
-      // Type 2: Creating multiple physical tables
-      // "use any one type which you are comfortable"
+
+      // Method used was Type 1: a single table with sub queries.
+      // over the method Type 2: multiple tables which consume more memory in Spark.
+      // the main downside to Type 1 is query performance, but if you wanted to optimize queries you could partition the table
 
     }
 
@@ -102,11 +96,11 @@ object Main15 {
       // What is the Average consumed beverage of  Branch2 avg()
       // QUESTION #2 Average can be interpretted in 2 ways: mean and median: mean of each beverage, median of overall table
       // Mean
-      spark1.sql("CREATE TABLE IF NOT EXISTS SUM_BEVERAGES AS SELECT CountA.beverages, sum(CountA.count) as beverage_sum FROM BRANCH_BEVERAGES JOIN CountA ON BRANCH_BEVERAGES.beverages= CountA.beverages group by CountA.beverages")
+      dfsc.sql("CREATE TABLE IF NOT EXISTS SUM_BEVERAGES AS SELECT CountA.beverages, sum(CountA.count) as beverage_sum FROM BRANCH_BEVERAGES JOIN CountA ON BRANCH_BEVERAGES.beverages= CountA.beverages group by CountA.beverages")
       // Add Row column
-      spark1.sql("CREATE TABLE IF NOT EXISTS NEW SELECT *, ROW_NUMBER() OVER (ORDER BY beverage_sum) as row FROM SUM_BEVERAGES")
+      dfsc.sql("CREATE TABLE IF NOT EXISTS NEW SELECT *, ROW_NUMBER() OVER (ORDER BY beverage_sum) as row FROM SUM_BEVERAGES")
       // Median
-      spark1.sql("SELECT beverages as average_consumed_beverage from NEW where row=round((count(*)/2), 0)").show()
+      dfsc.sql("SELECT beverages as average_consumed_beverage from NEW where row=round((count(*)/2), 0)").show()
     
 
       def questionTwo(): Unit = {
@@ -115,15 +109,15 @@ object Main15 {
         var b = "Branch"+input
         //prints out two tables, first showing branch intersections
         //second is the top 3 of most consumed
-        spark1.sql("CREATE VIEW BRANCH_BEVERAGES AS SELECT beverages, common_br FROM (SELECT beverages, collect_set(branches) as common_br FROM BranchesA group by beverages)where array_contains(common_br, 'Branch1')")
-        spark1.sql("SELECT * FROM BRANCH_BEVERAGES").show(60, false) 
-        spark1.sql("SELECT CountA.beverages, sum(CountA.count) as beverage_sum FROM BRANCH_BEVERAGES JOIN CountA ON BRANCH_BEVERAGES.beverages= CountA.beverages group by CountA.beverages order by beverage_sum desc").show(3)
+        dfsc.sql("CREATE VIEW BRANCH_BEVERAGES AS SELECT beverages, common_br FROM (SELECT beverages, collect_set(branches) as common_br FROM BranchesA group by beverages)where array_contains(common_br, 'Branch1')")
+        dfsc.sql("SELECT * FROM BRANCH_BEVERAGES").show(60, false) 
+        dfsc.sql("SELECT CountA.beverages, sum(CountA.count) as beverage_sum FROM BRANCH_BEVERAGES JOIN CountA ON BRANCH_BEVERAGES.beverages= CountA.beverages group by CountA.beverages order by beverage_sum desc").show(3)
         /*
         //#2
         ("select CountA.beverages, sum(CountA.count) as beverage_sum from BranchesA Join CountA on BranchesA.beverages=CountA.beverages where BranchesA.branches='Branch1' group by CountA.beverages order by beverages_sum desc ")
       
-        spark1.sql("SELECT beverages, common_br FROM (SELECT beverages, collect_set(branches) as common_br FROM BranchesA group by beverages)where array_contains(common_br, 'Branch1')").show(60, false)
-        spark1.sql("SELECT sum(CountA.count) as Total_Consumers FROM  BranchesA JOIN CountA ON BranchesA.beverages= CountA.beverages WHERE BranchesA.branches = 'Branch1'").show()
+        dfsc.sql("SELECT beverages, common_br FROM (SELECT beverages, collect_set(branches) as common_br FROM BranchesA group by beverages)where array_contains(common_br, 'Branch1')").show(60, false)
+        dfsc.sql("SELECT sum(CountA.count) as Total_Consumers FROM  BranchesA JOIN CountA ON BranchesA.beverages= CountA.beverages WHERE BranchesA.branches = 'Branch1'").show()
 
         */
       }
@@ -145,13 +139,13 @@ object Main15 {
       // create a partition,View for the scenario3.
       // var b1 = "Branch"+inputBranch(0)
       // var b2 = "Branch"+inputBranch(1)
-      // spark1.sql(s"CREATE VIEW ALL_AVAILABLE_BEVERAGES AS SELECT beverages FROM Partitioned WHERE branches = '$b1' UNION SELECT beverages FROM Partitioned WHERE branches = '$b2'")
-      // spark1.sql("SELECT * FROM ALL_AVAILABLE_BEVERAGES").show(60)
-      // spark1.sql(s"SELECT DISTINCT beverages FROM (SELECT beverages, collect_set(branches) as b FROM Partitioned group by beverages) WHERE ARRAY_CONTAINS(b, '$b1') AND ARRAY_CONTAINS(b, '$b2')").show()
-      // dynamic partition: spark1.sql("CREATE TABLE IF NOT EXISTS Partitioned(beverages STRING) COMMENT 'A PARTITIONED BRANCH TABLE' PARTITIONED BY (branches STRING)")
-      // spark1.sql("set hive.exec.dynamic.partition.mode=nonstrict")
-      // spark1.sql("INSERT OVERWRITE TABLE Partitioned PARTITION(branches) SELECT beverages,branches from Branches")
-      // spark1.sql("SELECT * FROM Partitioned")
+      // dfsc.sql(s"CREATE VIEW ALL_AVAILABLE_BEVERAGES AS SELECT beverages FROM Partitioned WHERE branches = '$b1' UNION SELECT beverages FROM Partitioned WHERE branches = '$b2'")
+      // dfsc.sql("SELECT * FROM ALL_AVAILABLE_BEVERAGES").show(60)
+      // dfsc.sql(s"SELECT DISTINCT beverages FROM (SELECT beverages, collect_set(branches) as b FROM Partitioned group by beverages) WHERE ARRAY_CONTAINS(b, '$b1') AND ARRAY_CONTAINS(b, '$b2')").show()
+      // dynamic partition: dfsc.sql("CREATE TABLE IF NOT EXISTS Partitioned(beverages STRING) COMMENT 'A PARTITIONED BRANCH TABLE' PARTITIONED BY (branches STRING)")
+      // dfsc.sql("set hive.exec.dynamic.partition.mode=nonstrict")
+      // dfsc.sql("INSERT OVERWRITE TABLE Partitioned PARTITION(branches) SELECT beverages,branches from Branches")
+      // dfsc.sql("SELECT * FROM Partitioned")
       // ssql.sql("SHOW PARTITIONS BranchTablePartitioned").show()
     }
     
@@ -161,36 +155,36 @@ object Main15 {
       // Problem Scenario 5: Alter the table properties to add "note","comment"
       // notes = Comment
       // SHOW TBLPROPERTIES <tablename>
-      spark1.sql("ALTER TABLE TableToManipulate SET TBLPROPERTIES ('notes' = 'NOTE THIS TABLE WILL BE EDITED FREQUENTLY')")
-      spark1.sql("SHOW TBLPROPERTIES TableToManipulate").show()
+      dfsc.sql("ALTER TABLE TableToManipulate SET TBLPROPERTIES ('notes' = 'NOTE THIS TABLE WILL BE EDITED FREQUENTLY')")
+      dfsc.sql("SHOW TBLPROPERTIES TableToManipulate").show()
       // DESCRIBE FORMATTED table_name
 
       // Remove a row from the any Senario.
       def deleteRowNoParams(): Unit = {
       //create copy table
-      spark1.sql("CREATE TABLE IF NOT EXISTS newone2_copy LIKE newone2")
+      dfsc.sql("CREATE TABLE IF NOT EXISTS newone2_copy LIKE newone2")
       //load data into copy table except deleted item
-      spark1.sql("INSERT INTO newone2_copy SELECT * FROM newone2 WHERE name NOT IN (SELECT name FROM newone2 WHERE name='varun')")
+      dfsc.sql("INSERT INTO newone2_copy SELECT * FROM newone2 WHERE name NOT IN (SELECT name FROM newone2 WHERE name='varun')")
       //overwrite copy table to original table
-      spark1.sql("INSERT OVERWRITE TABLE newone2 SELECT * FROM newone2_copy")
+      dfsc.sql("INSERT OVERWRITE TABLE newone2 SELECT * FROM newone2_copy")
       //drop copy table
-      spark1.sql("DROP TABLE newone2_copy")
+      dfsc.sql("DROP TABLE newone2_copy")
       //show new table with deleted row
-      spark1.sql("SELECT * FROM newone2").show(5)
+      dfsc.sql("SELECT * FROM newone2").show(5)
     }
 
     def deleteRow(table: String, key: String, value: String): Unit = {
       val table_copy: String = table+"_copy"
       //create copy table
-      spark1.sql(s"CREATE TABLE IF NOT EXISTS $table_copy LIKE newone2")
+      dfsc.sql(s"CREATE TABLE IF NOT EXISTS $table_copy LIKE newone2")
       //load data into copy table except deleted item
-      spark1.sql(s"INSERT INTO $table_copy SELECT * FROM $table WHERE $key NOT IN (SELECT $key FROM $table WHERE $key='$value')")
+      dfsc.sql(s"INSERT INTO $table_copy SELECT * FROM $table WHERE $key NOT IN (SELECT $key FROM $table WHERE $key='$value')")
       //overwrite copy table to original table
-      spark1.sql(s"INSERT OVERWRITE TABLE $table SELECT * FROM $table_copy")
+      dfsc.sql(s"INSERT OVERWRITE TABLE $table SELECT * FROM $table_copy")
       //drop copy table
-      spark1.sql(s"DROP TABLE $table_copy")
+      dfsc.sql(s"DROP TABLE $table_copy")
       //show new table with deleted row
-      spark1.sql(s"SELECT * FROM $table").show(5)
+      dfsc.sql(s"SELECT * FROM $table").show(5)
     }
     }
 
@@ -201,7 +195,12 @@ object Main15 {
     }
       
 
-
+/*
+    SMALL_cappuccino, MED_cappuccino, LARGE_cappuccino, COLD_cappuccino, ICY_cappuccino, Triple_cappuccino, 
+    Mild_cappuccino, Special_cappuccino, Double_cappuccino are the only beverages sold daily
+    Sold both X&Y in the XYXYXY... pattern
+    All others are sold either X or Y
+*/
 
 
 
@@ -212,45 +211,6 @@ object Main15 {
     
 
 
-    //spark1.conf.set("hive.exec.dynamic.partition.mode", "nonstrict")
-
-    
-    
-    //spark.sql("CREATE TABLE IF NOT EXISTS BranchA(coffee STRING, branch STRING) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE")
-    //spark.sql("LOAD DATA LOCAL INPATH 'input/Bev_BranchA.txt' INTO TABLE BranchA")
-    //spark.sql("CREATE TABLE IF NOT EXISTS CountA(coffee STRING, count INT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE")
-    //spark.sql("LOAD DATA LOCAL INPATH 'input/Bev_ConscountA.txt' OVERWRITE INTO TABLE CountA")
-    //spark.sql("SELECT * FROM BranchA").show()
-    //println(spark.sql("SELECT * FROM CountA").getClass())
-    //spark.sql("SELECT * FROM CountA WHERE count=144").show()
-    //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-    //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-    //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-
-    /*
-    // Solution #3 or #4
-    
-    */
-    
-
-//     def main(args: Array[String]): Unit = {
-//     println("logging")
-//     var input = readLine("whatever: ")
-//     var inputBranch = input.split(",")
-//     println(inputBranch)
-
-//     var branchInput1 = "Branch"+inputBranch(0)
-//     var branchInput2 = "Branch"+inputBranch(1)
-
-//     var branchInput1String = branchInput1.toString()
-//     var branchInput2String = branchInput2.toString()
-
-//     println(s"First branch is: $branchInput1\nSecond branch is: $branchInput2")
-
-//     // for (i <- 0 to inputBranch.length-1) {
-//     //   var s = "Branch".inputBranch(i)
-//     //   inputBranch(i)
-//     // }
 
 
 
@@ -324,7 +284,7 @@ object Main15 {
     }
     println(coffee)
     file.close
-    var sparkCoffee = spark1.sparkContext.parallelize(coffee.toList)
+    var sparkCoffee = dfsc.sparkContext.parallelize(coffee.toList)
     println(sparkCoffee.getClass())
     var joined = sparkCoffee.groupByKey()
     joined.foreach(y=>{
@@ -381,7 +341,7 @@ object Main15 {
     }
     println(coffee)
     file.close
-    var sparkCoffee = spark1.sparkContext.parallelize(coffee.toList)
+    var sparkCoffee = dfsc.sparkContext.parallelize(coffee.toList)
     println(sparkCoffee.getClass())
     var joined = sparkCoffee.groupByKey()
     joined.foreach(y=>{
@@ -401,22 +361,22 @@ object Main15 {
     
     //Logger.getRootLogger().setLevel(Level.OFF);
     
-    val spark1 = SparkSession.builder()
+    val dfsc = SparkSession.builder()
     .appName("HiveTest5")
     .config("spark.master", "local")
     .enableHiveSupport()
     .getOrCreate()
     
-    spark1.sparkContext.setLogLevel("ERROR")
+    dfsc.sparkContext.setLogLevel("ERROR")
     println("created spark session")
     //spark.sql("CREATE TABLE IF NOT EXISTS src (key INT, value STRING) USING hive")
     //spark.sql("CREATE TABLE IF NOT EXISTS src(key INT, value STRING) ROW FORMAT DELIMITED FIELDS TERMINATED BY ‘,’ STORED AS TEXTFILE")
     //spark.sql("LOAD DATA LOCAL INPATH 'input/kv1.txt' INTO TABLE src")
     //spark.sql("CREATE TABLE IF NOT EXISTS src (key INT,value STRING) USING hive")
-    spark1.sql("create table if not exists newone2(id Int,name String) row format delimited fields terminated by ','");
-    spark1.sql("LOAD DATA LOCAL INPATH 'input/kv1.txt' OVERWRITE INTO TABLE newone2")
-    spark1.sql("SELECT * FROM newone2").show()
-    spark1.sql("SELECT * FROM newone2 WHERE id=23").show()
+    dfsc.sql("create table if not exists newone2(id Int,name String) row format delimited fields terminated by ','");
+    dfsc.sql("LOAD DATA LOCAL INPATH 'input/kv1.txt' OVERWRITE INTO TABLE newone2")
+    dfsc.sql("SELECT * FROM newone2").show()
+    dfsc.sql("SELECT * FROM newone2 WHERE id=23").show()
 */
 
 

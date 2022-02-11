@@ -1,16 +1,20 @@
 # Data Processing Layer
-## = Spark =
-Realtime
+## = Spark Streaming =
+- Realtime ~= High Data **V**elocity
+- `DStream` ~= a discrete stream aka sustained series of RDDs
+  - `DStream` is Spark Streaming's core data type aka abstraction
+  - `DStream` is created with `StreamingContext`
 
 # Data Query Layer
 ## = Hive =
 
 # Analytics Layer
 ## == MLlib ==
+`Vector`
 
 # Visualization Layer
 ## == D3.js ==
-Realtime = High Data Velocity
+- Realtime ~= High Data **V**elocity
 
 
 ===================================
