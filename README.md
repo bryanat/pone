@@ -1,3 +1,7 @@
+Main two files are:
+MainHive.scala for Hive and Spark SQL
+MainStreaming.scala for Spark Streaming
+
 # Data Processing Layer
 ## = Spark ==
 - `Dataframe` = `Dataset[row]`
