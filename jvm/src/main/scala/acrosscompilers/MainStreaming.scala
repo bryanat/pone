@@ -1,3 +1,5 @@
+package acrosscompilers
+
 import org.apache.spark._
 import org.apache.spark.sql._
 import org.apache.spark.streaming._
@@ -6,44 +8,84 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.SparkContext._
 import scala.io.StdIn.readLine
 import org.apache.spark.ml.linalg.Vectors
+import org.apache.spark.broadcast.Broadcast
+import org.apache.spark.rdd.PairRDDFunctions._
+import scala.collection.mutable.ArrayBuffer
+
+//import acrosscompilers.MainHive
 
 
 object MainStreaming {
-
-  def Smain(args: Array[String]): Unit = {
-    println("init7")
+  def init(args: Array[String]): Unit = {
+  //def init(): Unit = {
+    println("Stopping Hive SparkSession... Starting Spark Streaming StreamingContext...")
     System.setProperty("hadoop.home.dir", "C:\\hadoop")
+    
 
-    /*
-    //spark.createDataframe(data).toDF()
+      val dfsc = SparkSession.builder().appName("HiveApp").config("spark.master", "local").enableHiveSupport().getOrCreate()
+      dfsc.sparkContext.setLogLevel("ERROR")
+      
+      dfsc.sql("CREATE TABLE IF NOT EXISTS BranchABC2(beverage STRING, branch STRING) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE")
+      dfsc.sql("LOAD DATA LOCAL INPATH 'input/Bev_BranchA.txt' OVERWRITE INTO TABLE BranchABC2")
+      dfsc.sql("LOAD DATA LOCAL INPATH 'input/Bev_BranchB.txt' INTO TABLE BranchABC2")
+      dfsc.sql("LOAD DATA LOCAL INPATH 'input/Bev_BranchC.txt' INTO TABLE BranchABC2")
+      // First generate a list of all 54 beverages 
+      var dfres = dfsc.sql("SELECT DISTINCT beverage FROM BranchABC2").collect()
+      // Create an empty array, that will end up holding the name of each beverage 
+      var beverageArray: ArrayBuffer[String] = ArrayBuffer[String]()
+      // Generate an array containing each beverage name 
+      dfres.foreach( row => {
+        // Add each row to the beverage array after converting it to a string 
+        beverageArray += row.get(0).toString()
+      })
+      beverageArray.length //54 Beverages
 
-    // val file = sc.textFile("input/CountACut.txt")
-    // val rdd = file.flatMap(line => line.split(",")).groupByKey()
-    // var df = dfsc.createDataFrame(rdd).toDF("label", "features")
+      // A little trick to turn an Array into comma separate strings, just want to remember for more complex datatypes that dont have a built in .toDatatype() method 
+      // var The54InCSVString = beverageArray.mkString("\",\"")
 
-    // // Create broadcast variable to share data retrieved from StreamingContext to scalajs d3 ???
+      // Returns a Map datatype containing all 54 beverages
+      var beverageMap = beverageArray.map(beverage => (beverage.toString(), 0)).toMap
 
-    */
+      dfsc.stop();
+
+      //BROADCAST beverageMap WITH THE OTHER OBJECTS (could just abstract through an object property) 
+      //val broadcastBeverageMap: Broadcast[Map[String,Int]] = dfsc.sparkContext.broadcast(beverageMap)
+      //broadcastBeverageMap
     
     
     // SparkConf is configuration of Spark Cluster, specifies 2 working threads on local machine and Spark home directory
-    val conf = new SparkConf().setMaster("local[2]").setAppName("P1").setSparkHome("C:\\Spark")
+    val conf = new SparkConf().setMaster("local[4]").setAppName("P1").setSparkHome("C:\\Spark")
     // SparkContext (sc) is main entrypoint for Spark API
     val sc   = new SparkContext(conf)
     // StreamingContext (ssc) is main entrypoint for Spark Streaming API, built on top of SparkContext (sc)
-    val ssc  = new StreamingContext(sc, Seconds(3))
+    val ssc  = new StreamingContext(sc, Seconds(1))
     // Spark log level set to not print INFO lines, accessed through the SparkContext (sc) "The associated SparkContext [sc beneath ssc] can be accessed using ssc.sparkContext ~= sc"
     ssc.sparkContext.setLogLevel("WARN")
     // SparkSession is main entrypoint for Spark SQL API
-    val dfsc = SparkSession.builder().appName("HiveTest5").config("spark.master", "local").enableHiveSupport().getOrCreate()
+    //val dfsc = SparkSession.builder().appName("HiveTest5").config("spark.master", "local").enableHiveSupport().getOrCreate()
     //dfsc.sparkContext.setLogLevel("ERROR")
+    
+    // DStream is a discrete stream aka sustained series of RDDs
+    var dstream = ssc.textFileStream("file:///C:/revenant/pone/input/rtdata/artstream")
+    
+    // Split each line into words
+    val dstream_words = dstream.flatMap(_.split(","))
 
+    // Count each word in each batch
+    //"The words DStream is further mapped (one-to-one transformation) to a DStream of (word, 1) pairs," 
+    //"which is then reduced to get the frequency of words in each batch of data."
+    //"Finally, wordCounts.print() will print a few of the counts generated every second."
+    val dstreamPair_key_coffee_value_1 = dstream_words.map(coffee => (coffee, 1))
+    val dstreamPair_key_coffee_value_Count = dstreamPair_key_coffee_value_1.reduceByKey(_ + _)
 
+    // Print the first ten elements of each RDD generated in this DStream to the console
+    dstreamPair_key_coffee_value_Count.print()
+    
     // 1 Define the input sources by creating input DStreams.
     // 2 Define the streaming computations by applying transformation and output operations to DStreams.
 
-    // DStream is a discrete stream aka sustained series of RDDs
-    var dstream = ssc.textFileStream("file:///C:/revenant/pone/input/rtdata/rtstream")
+    // // DStream is a discrete stream aka sustained series of RDDs
+    // var dstream = ssc.textFileStream("file:///C:/revenant/pone/input/rtdata/artstream")
 
     // explain .print() method vs println :
       // println() will only run once, when streamingContext is initiated
@@ -58,19 +100,10 @@ object MainStreaming {
     // Create a DStream that will connect to hostname:port, like localhost:9999
     //val lines = ssc.socketTextStream("localhost", 9999)
 
-    // Split each line into words
-    val dstream_words = dstream.flatMap(_.split(","))
+    // // Split each line into words
+    // val dstream_words = dstream.flatMap(_.split(","))
 
 
-    // Count each word in each batch
-    //"The words DStream is further mapped (one-to-one transformation) to a DStream of (word, 1) pairs," 
-    //"which is then reduced to get the frequency of words in each batch of data."
-    //"Finally, wordCounts.print() will print a few of the counts generated every second."
-    val dstreamPair_key_coffee_value_1 = dstream_words.map(coffee => (coffee, 1))
-    val dstreamPair_key_coffee_value_Count = dstreamPair_key_coffee_value_1.reduceByKey(_ + _)
-
-    // Print the first ten elements of each RDD generated in this DStream to the console
-    dstreamPair_key_coffee_value_Count.print()
 
 
     // DStream ADDS RDD TO Map, share Map with ScalaJS
@@ -80,14 +113,31 @@ object MainStreaming {
     //   the global Map variable/object will be shared with the ScalaJS scope
 
 
-    
+    //var The54Map = Map(Double_cappuccino -> 0, Triple_MOCHA -> 0, LARGE_Lite -> 0, Mild_MOCHA -> 0, Double_LATTE -> 0, Special_MOCHA -> 0, Double_MOCHA -> 0, MED_cappuccino -> 0, Triple_Lite -> 0, Triple_Espresso -> 0, MED_LATTE -> 0, Cold_cappuccino -> 0, ICY_LATTE -> 0, Special_Coffee -> 0, ICY_Lite -> 0, Mild_Lite -> 0, LARGE_Coffee -> 0, Mild_cappuccino -> 0, Special_Espresso -> 0, Special_cappuccino -> 0, Cold_Espresso -> 0, Triple_cappuccino -> 0, MED_MOCHA -> 0, Triple_Coffee -> 0, SMALL_Lite -> 0, Special_Lite -> 0, Cold_MOCHA -> 0, SMALL_MOCHA -> 0, Cold_LATTE -> 0, Double_Coffee -> 0, Special_LATTE -> 0, SMALL_LATTE -> 0, Mild_Coffee -> 0, ICY_MOCHA -> 0, Mild_Espresso -> 0, ICY_Espresso -> 0, SMALL_Coffee -> 0, Cold_Lite -> 0, MED_Espresso -> 0, SMALL_cappuccino -> 0, Double_Lite -> 0, ICY_Coffee -> 0, LARGE_LATTE -> 0, Mild_LATTE -> 0, Double_Espresso -> 0, MED_Lite -> 0, LARGE_MOCHA -> 0, SMALL_Espresso -> 0, LARGE_Espresso -> 0, ICY_cappuccino -> 0, MED_Coffee -> 0, Cold_Coffee -> 0, Triple_LATTE -> 0, LARGE_cappuccino -> 0)
+
+    println(beverageMap)
 
 
     //dstreamPair_key_coffee_value_Count.compute()
     dstreamPair_key_coffee_value_Count.foreachRDD((rdd, time) => {
+      println(beverageMap)
+
+      //beverageMap += mergevaluesbykey rdd
+
+      //beverageMap
+
       val xyz = rdd.collect() // : an array containing all elements in this RDD
       println(xyz.mkString(","))
-      //
+
+      // beverageMap.map()
+
+      // beverageMap.map[String, Int]( ((String, Int)) => ())
+
+      // beverageMap.map( (beverage: String, currentCount: Int) => {
+      //   var newCount = currentCount
+      //     (beverage, newCount)
+      // } )
+      
     })
 
     // day1.csv
@@ -105,9 +155,6 @@ object MainStreaming {
     DenseVector(Array[Double])
 */
     //RDD
-    var x1 = 9; //x1: RDD 
-
-
 
 
     var daily = Seq(Vectors.dense(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0))
@@ -124,6 +171,16 @@ object MainStreaming {
 
 
 
+        /*
+    //spark.createDataframe(data).toDF()
+
+    // val file = sc.textFile("input/CountACut.txt")
+    // val rdd = file.flatMap(line => line.split(",")).groupByKey()
+    // var df = dfsc.createDataFrame(rdd).toDF("label", "features")
+
+    // // Create broadcast variable to share data retrieved from StreamingContext to scalajs d3 ???
+
+    */
 
 
 

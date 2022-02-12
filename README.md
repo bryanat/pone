@@ -1,4 +1,7 @@
 # Data Processing Layer
+## = Spark ==
+- `Dataframe` = `Dataset[row]`
+- `spark.sql()` returns a `Dataframe`
 ## = Spark Streaming =
 - Realtime ~= High Data **V**elocity
 - `DStream` ~= a discrete stream aka sustained series of RDDs
@@ -7,6 +10,7 @@
 
 # Data Query Layer
 ## = Hive =
+- `spark.sql()` returns a `Dataframe`
 
 # Analytics Layer
 ## == MLlib ==
@@ -15,13 +19,86 @@
 # Visualization Layer
 ## == D3.js ==
 - Realtime ~= High Data **V**elocity
-
+- Crossbuild 
 
 ===================================
 
 
+![](https://i.imgur.com/3wzWB9o.png)
 
-init22
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
