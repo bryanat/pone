@@ -16,8 +16,8 @@ import scala.collection.mutable.ArrayBuffer
 
 
 object MainHive {
-  // def main(args: Array[String]): Unit = {
-  def Xmain(): Unit = {
+  def main(args: Array[String]): Unit = {
+  // def Xmain(): Unit = {
     System.setProperty("hadoop.home.dir", "C:\\hadoop")
 
     val dfsc = SparkSession.builder().appName("HiveApp").config("spark.master", "local").enableHiveSupport().getOrCreate()
@@ -90,7 +90,7 @@ object MainHive {
             case 3 => {scenario3(); menu()}
             case 4 => {scenario4(); menu()}
             case 5 => {scenario5(); menu()}
-            case 6 => {dfsc.stop(); }  //MainStreaming.init()
+            case 6 => {dfsc.stop(); MainStreaming.init()} 
             case _ => {println("Invalid number, pick a number from the menu."); menu()} // catch all for non numbers 0-7, recursive menu() call to loop 
           }
         }
@@ -105,6 +105,7 @@ object MainHive {
       // What is the total number of consumers for Branch1?
       // Branch1 only exists on BranchA
       dfsc.sql("SELECT SUM(CountA.count) AS Total_Consumers_Branch1 FROM CountA JOIN BranchABC AS b ON CountA.beverage = b.beverage WHERE b.branch='Branch1'").show(20)
+      dfsc.sql("SELECT ")
       // What is the number of consumers for the Branch2?
       dfsc.sql("SELECT SUM(CountAC.count) AS Total_Consumers_Branch2 FROM CountAC JOIN BranchABC AS b ON CountAC.beverage = b.beverage WHERE b.branch='Branch2'").show(20)
     // Method used was Type 1: a single table with sub queries.
@@ -117,7 +118,7 @@ object MainHive {
     def scenario2(): Unit = {
       // What is the most consumed beverage on Branch1 max() //special_cappuccino = 108163 
       dfsc.sql("SELECT BranchABC.beverage, sum(CountABC.count) FROM BranchABC JOIN CountABC ON BranchABC.beverage = CountABC.beverage WHERE branch='Branch1' GROUP BY BranchABC.beverage ORDER BY sum(CountABC.count) DESC LIMIT 1").show()
-      
+
       // What is the least consumed beverage on Branch2 min() //Cold_MOCHA = 47524
       dfsc.sql("SELECT BranchABC.beverage, sum(CountABC.count) FROM BranchABC JOIN CountABC ON BranchABC.beverage = CountABC.beverage WHERE branch='Branch2' GROUP BY BranchABC.beverage ORDER BY sum(CountABC.count) ASC LIMIT 1").show()
 

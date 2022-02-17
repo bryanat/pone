@@ -2,6 +2,9 @@ Main two files are:
 MainHive.scala for Hive and Spark SQL
 MainStreaming.scala for Spark Streaming
 
+Note this project is cross built to allow D3.js on Scala.js, so instead of running with `sbt run` run with `sbt oiJVM/run` to run the main class for the jvm.
+not satisfied with the current state of my P1, but I understand I have to share it right now still. still planning on adding improvements but current focus has been leading ptwo.
+
 # Data Processing Layer
 ## = Spark ==
 - `Dataframe` = `Dataset[row]`

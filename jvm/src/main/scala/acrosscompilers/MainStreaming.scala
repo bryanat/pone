@@ -11,20 +11,20 @@ import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.PairRDDFunctions._
 import scala.collection.mutable.ArrayBuffer
+import _root_.spire.std.map
 
 //import acrosscompilers.MainHive
 
 
 object MainStreaming {
-  def init(args: Array[String]): Unit = {
-  //def init(): Unit = {
-    println("Stopping Hive SparkSession... Starting Spark Streaming StreamingContext...")
+  //def main(args: Array[String]): Unit = {
+  def init(): Unit = {
     System.setProperty("hadoop.home.dir", "C:\\hadoop")
+    println("Stoping Hive/SSQL SparkSession... Starting Spark Streaming StreamingContext")
     
-
+    // lazy val getBeverageMap: () => Map[String,Int] = () => {
       val dfsc = SparkSession.builder().appName("HiveApp").config("spark.master", "local").enableHiveSupport().getOrCreate()
       dfsc.sparkContext.setLogLevel("ERROR")
-      
       dfsc.sql("CREATE TABLE IF NOT EXISTS BranchABC2(beverage STRING, branch STRING) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE")
       dfsc.sql("LOAD DATA LOCAL INPATH 'input/Bev_BranchA.txt' OVERWRITE INTO TABLE BranchABC2")
       dfsc.sql("LOAD DATA LOCAL INPATH 'input/Bev_BranchB.txt' INTO TABLE BranchABC2")
@@ -39,14 +39,12 @@ object MainStreaming {
         beverageArray += row.get(0).toString()
       })
       beverageArray.length //54 Beverages
-
+      
       // A little trick to turn an Array into comma separate strings, just want to remember for more complex datatypes that dont have a built in .toDatatype() method 
       // var The54InCSVString = beverageArray.mkString("\",\"")
-
-      // Returns a Map datatype containing all 54 beverages
-      var beverageMap = beverageArray.map(beverage => (beverage.toString(), 0)).toMap
-
+      
       dfsc.stop();
+
 
       //BROADCAST beverageMap WITH THE OTHER OBJECTS (could just abstract through an object property) 
       //val broadcastBeverageMap: Broadcast[Map[String,Int]] = dfsc.sparkContext.broadcast(beverageMap)
@@ -54,19 +52,44 @@ object MainStreaming {
     
     
     // SparkConf is configuration of Spark Cluster, specifies 2 working threads on local machine and Spark home directory
-    val conf = new SparkConf().setMaster("local[4]").setAppName("P1").setSparkHome("C:\\Spark")
+    val sconf = new SparkConf().setMaster("local[4]").setAppName("P1").setSparkHome("C:\\Spark")
     // SparkContext (sc) is main entrypoint for Spark API
-    val sc   = new SparkContext(conf)
+    val sc   = new SparkContext(sconf)
     // StreamingContext (ssc) is main entrypoint for Spark Streaming API, built on top of SparkContext (sc)
-    val ssc  = new StreamingContext(sc, Seconds(1))
+    val ssc  = new StreamingContext(sc, Seconds(2))
     // Spark log level set to not print INFO lines, accessed through the SparkContext (sc) "The associated SparkContext [sc beneath ssc] can be accessed using ssc.sparkContext ~= sc"
     ssc.sparkContext.setLogLevel("WARN")
     // SparkSession is main entrypoint for Spark SQL API
     //val dfsc = SparkSession.builder().appName("HiveTest5").config("spark.master", "local").enableHiveSupport().getOrCreate()
     //dfsc.sparkContext.setLogLevel("ERROR")
+
+    // 1 : Merge DStream>RDD>Map with 54Map
+    // 2 : ReduceByKey on the two Merged Map groups from #1
+    // 3 : Add #2 ReducedByKey batch result map to the total map / matrix
+
+    var the54BevMap = Map(
+      "Double_cappuccino" -> 0, "Triple_MOCHA" -> 0, "LARGE_Lite" -> 0, "Mild_MOCHA" -> 0, "Double_LATTE" -> 0, "Special_MOCHA" -> 0, "Double_MOCHA" -> 0, "MED_cappuccino" -> 0, 
+      "Triple_Lite" -> 0, "Triple_Espresso" -> 0, "MED_LATTE" -> 0, "Cold_cappuccino" -> 0, "ICY_LATTE" -> 0, "Special_Coffee" -> 0, "ICY_Lite" -> 0, "Mild_Lite" -> 0, 
+      "LARGE_Coffee" -> 0, "Mild_cappuccino" -> 0, "Special_Espresso" -> 0, "Special_cappuccino" -> 0, "Cold_Espresso" -> 0, "Triple_cappuccino" -> 0, "MED_MOCHA" -> 0, 
+      "Triple_Coffee" -> 0, "SMALL_Lite" -> 0, "Special_Lite" -> 0, "Cold_MOCHA" -> 0, "SMALL_MOCHA" -> 0, "Cold_LATTE" -> 0, "Double_Coffee" -> 0, "Special_LATTE" -> 0, 
+      "SMALL_LATTE" -> 0, "Mild_Coffee" -> 0, "ICY_MOCHA" -> 0, "Mild_Espresso" -> 0, "ICY_Espresso" -> 0, "SMALL_Coffee" -> 0, "Cold_Lite" -> 0, "MED_Espresso" -> 0, 
+      "SMALL_cappuccino" -> 0, "Double_Lite" -> 0, "ICY_Coffee" -> 0, "LARGE_LATTE" -> 0, "Mild_LATTE" -> 0, "Double_Espresso" -> 0, "MED_Lite" -> 0, "LARGE_MOCHA" -> 0, 
+      "SMALL_Espresso" -> 0, "LARGE_Espresso" -> 0, "ICY_cappuccino" -> 0, "MED_Coffee" -> 0, "Cold_Coffee" -> 0, "Triple_LATTE" -> 0, "LARGE_cappuccino" -> 0
+    )
+      
+    var the54BevSeq = the54BevMap.toSeq
+
+    //var the54BevRDD = sc.makeRDD(the54BevSeq)
+    var the54BevRDDUnkeyed = sc.makeRDD(beverageArray)
+
+    var the54BevMapRDD = the54BevRDDUnkeyed.map(beverage => (beverage, None))
+    
+
+    // var vectorHeader = beverageMapX.values.toVector
+
     
     // DStream is a discrete stream aka sustained series of RDDs
-    var dstream = ssc.textFileStream("file:///C:/revenant/pone/input/rtdata/artstream")
+    var dstream = ssc.textFileStream("file:///C:/revenant/pone/input/rtdata/rtstream")
     
     // Split each line into words
     val dstream_words = dstream.flatMap(_.split(","))
@@ -76,16 +99,35 @@ object MainStreaming {
     //"which is then reduced to get the frequency of words in each batch of data."
     //"Finally, wordCounts.print() will print a few of the counts generated every second."
     val dstreamPair_key_coffee_value_1 = dstream_words.map(coffee => (coffee, 1))
+
+//(Triple_cappuccino, 4.99),(Mild_cappuccino,2.99),Cold_cappuccino,Mild_MOCHA,ICY_MOCHA,LARGE_cappuccino,Cold_Lite,SMALL_cappuccino,Cold_cappuccino,Mild_cappuccino,Triple_Lite,Special_cappuccino,Special_cappuccino,SMALL_cappuccino,LARGE_Espresso,MED_MOCHA,ICY_MOCHA,Triple_LATTE,MED_MOCHA,Cold_Espresso,Special_cappuccino,Triple_LATTE,Triple_Lite,Triple_LATTE,Cold_Espresso,Cold_cappuccino,Cold_cappuccino,LARGE_cappuccino,Special_Espresso,Cold_Lite,Special_Espresso,Cold_cappuccino,Special_cappuccino,ICY_Coffee,Cold_Lite,ICY_MOCHA,Mild_cappuccino,Cold_cappuccino,SMALL_Espresso,Triple_Lite,SMALL_Lite,LARGE_Espresso,Cold_Espresso,LARGE_Espresso,Cold_Espresso,LARGE_cappuccino,SMALL_Espresso,SMALL_cappuccino,Double_LATTE,SMALL_cappuccino,LARGE_Espresso,MED_MOCHA,Mild_cappuccino,Mild_Coffee,Cold_cappuccino,SMALL_Espresso,Special_Espresso,LARGE_Espresso,Cold_cappuccino,Cold_Lite,Cold_cappuccino,Mild_Coffee,SMALL_cappuccino,ICY_MOCHA,Mild_cappuccino,Special_cappuccino,Cold_cappuccino,Mild_cappuccino,ICY_MOCHA,LARGE_MOCHA,SMALL_cappuccino,ICY_Coffee,Double_cappuccino,SMALL_Espresso,Special_Espresso,LARGE_cappuccino,SMALL_Lite,SMALL_Espresso,LARGE_Espresso,Special_cappuccino,SMALL_Lite,Special_cappuccino,SMALL_Lite,MED_MOCHA,Cold_cappuccino,LARGE_cappuccino,Double_cappuccino,MED_MOCHA,SMALL_cappuccino,Mild_MOCHA,Cold_Espresso,Triple_Lite,Cold_Lite,Double_LATTE,Special_cappuccino,ICY_Coffee,LARGE_cappuccino,Triple_Lite,SMALL_Lite,SMALL_cappuccino,Mild_cappuccino,Cold_Lite,ICY_MOCHA,Triple_Lite,LARGE_cappuccino,Cold_Espresso,Cold_Lite,MED_Espresso,LARGE_Espresso,Cold_cappuccino,Special_cappuccino,MED_MOCHA,SMALL_Espresso,MED_cappuccino,Double_LATTE,Special_Espresso,LARGE_cappuccino,Mild_cappuccino,LARGE_Espresso,Triple_Lite,Cold_Lite,Special_Espresso,Cold_cappuccino,LARGE_cappuccino,Triple_cappuccino,Special_cappuccino,Mild_cappuccino,LARGE_Espresso,Cold_Espresso,Triple_LATTE,Cold_Espresso,Cold_cappuccino,SMALL_Espresso,Mild_MOCHA,Triple_Lite,Triple_Lite,Triple_cappuccino,Cold_Lite,LARGE_Espresso,LARGE_Espresso,LARGE_MOCHA,MED_MOCHA,SMALL_Espresso,Cold_Lite,SMALL_Lite,ICY_MOCHA,Triple_cappuccino,Special_Espresso,ICY_MOCHA,ICY_MOCHA,LARGE_Espresso,SMALL_Espresso,Triple_Lite,Mild_cappuccino,Special_Espresso,SMALL_Lite,Mild_Coffee,Double_cappuccino,SMALL_cappuccino,Cold_Lite,Cold_cappuccino,Cold_cappuccino,Triple_Lite,Triple_cappuccino,Mild_cappuccino,Triple_cappuccino,Cold_Lite,Cold_cappuccino,Cold_cappuccino,MED_MOCHA,Special_cappuccino,Triple_LATTE,Double_cappuccino,Triple_Lite,Mild_Coffee,Cold_Lite,Double_LATTE,LARGE_Espresso,Cold_Lite,LARGE_Espresso,LARGE_cappuccino,Triple_LATTE,LARGE_Espresso,SMALL_Espresso,Mild_cappuccino,Triple_cappuccino,Cold_Espresso,Mild_cappuccino,Double_LATTE,SMALL_cappuccino,LARGE_Espresso,Cold_cappuccino,Triple_cappuccino
+
+
+def updateFunction(newValues: Seq[Int], runningCount: Option[Int]): Option[Int] = {
+    val newCount = 5  // add the new values with the previous running count to get the new count
+    Some(newCount)
+}
+
+//updateStateByKey
+//updateStateByKey
+//updateStateByKey
+//updateStateByKey
+//updateStateByKey
+//updateStateByKey
+//updateStateByKey
+//updateStateByKey
+//updateStateByKey
+//updateStateByKey
+val runningCounts = dstreamPair_key_coffee_value_1.updateStateByKey[Int](updateFunction _)
+
     val dstreamPair_key_coffee_value_Count = dstreamPair_key_coffee_value_1.reduceByKey(_ + _)
+//(Triple_cappuchino, 30.92), adsfasdf
 
     // Print the first ten elements of each RDD generated in this DStream to the console
     dstreamPair_key_coffee_value_Count.print()
     
     // 1 Define the input sources by creating input DStreams.
     // 2 Define the streaming computations by applying transformation and output operations to DStreams.
-
-    // // DStream is a discrete stream aka sustained series of RDDs
-    // var dstream = ssc.textFileStream("file:///C:/revenant/pone/input/rtdata/artstream")
 
     // explain .print() method vs println :
       // println() will only run once, when streamingContext is initiated
@@ -95,7 +137,7 @@ object MainStreaming {
       
 
     // Generates a RDD every 1000 milliseconds
-    //var rdd = dstream.compute()
+    //var rdd = dstream.compute(Time(1000))
 
     // Create a DStream that will connect to hostname:port, like localhost:9999
     //val lines = ssc.socketTextStream("localhost", 9999)
@@ -115,19 +157,96 @@ object MainStreaming {
 
     //var The54Map = Map(Double_cappuccino -> 0, Triple_MOCHA -> 0, LARGE_Lite -> 0, Mild_MOCHA -> 0, Double_LATTE -> 0, Special_MOCHA -> 0, Double_MOCHA -> 0, MED_cappuccino -> 0, Triple_Lite -> 0, Triple_Espresso -> 0, MED_LATTE -> 0, Cold_cappuccino -> 0, ICY_LATTE -> 0, Special_Coffee -> 0, ICY_Lite -> 0, Mild_Lite -> 0, LARGE_Coffee -> 0, Mild_cappuccino -> 0, Special_Espresso -> 0, Special_cappuccino -> 0, Cold_Espresso -> 0, Triple_cappuccino -> 0, MED_MOCHA -> 0, Triple_Coffee -> 0, SMALL_Lite -> 0, Special_Lite -> 0, Cold_MOCHA -> 0, SMALL_MOCHA -> 0, Cold_LATTE -> 0, Double_Coffee -> 0, Special_LATTE -> 0, SMALL_LATTE -> 0, Mild_Coffee -> 0, ICY_MOCHA -> 0, Mild_Espresso -> 0, ICY_Espresso -> 0, SMALL_Coffee -> 0, Cold_Lite -> 0, MED_Espresso -> 0, SMALL_cappuccino -> 0, Double_Lite -> 0, ICY_Coffee -> 0, LARGE_LATTE -> 0, Mild_LATTE -> 0, Double_Espresso -> 0, MED_Lite -> 0, LARGE_MOCHA -> 0, SMALL_Espresso -> 0, LARGE_Espresso -> 0, ICY_cappuccino -> 0, MED_Coffee -> 0, Cold_Coffee -> 0, Triple_LATTE -> 0, LARGE_cappuccino -> 0)
 
-    println(beverageMap)
 
 
     //dstreamPair_key_coffee_value_Count.compute()
     dstreamPair_key_coffee_value_Count.foreachRDD((rdd, time) => {
-      println(beverageMap)
+
+
+
+
+      println("\n\n\n\n\n\n\n\n\n the map of all (54) beverages is below ")
+      println(the54BevMapRDD.collect.mkString(","))
+
+      /*
+      print(the54BevRDD.collectAsMap.values.mkString)
+      println("\n\n\n 54toSeq is below")
+      print(the54BevRDD.collectAsMap.values.toSeq)
+      */
+      
+      
+      // Step 2
+      // var mapRDD = rdd.collectAsMap()
+      // println("\n\n\n mapRDD is below")
+      // print(mapRDD)
+      
+      // Step 3 INCLUDES ZEROS DUE TO MERGE WITH BEVERAGEMAPX
+      // beverageMapX += mapRDD values
+      println("\n\n\n beverageMapX + mapRDD is below ")
+      var duozippedMapRDD = the54BevMapRDD.fullOuterJoin(rdd)
+      // var duoMap = the54BevMap.zip(mapRDD)
+      println(duozippedMapRDD.collect().mkString(","))
+      /*
+Map((Cold_MOCHA,0) -> (Special_LATTE,880), (MED_LATTE,0) -> (Double_cappuccino,306), (Double_LATTE,0) -> (Mild_Lite,74), (Triple_Lite,0) -> (Cold_Coffee,1000), (Special_MOCHA,0) -> (MED_Coffee,451), (Triple_MOCHA,0) -> (SMALL_Coffee,855), (Mild_MOCHA,0) -> (Triple_MOCHA,611), (Special_Lite,0) -> (Triple_Coffee,900), (MED_cappuccino,0) -> (LARGE_cappuccino,37), (Special_Coffee,0) -> (ICY_cappuccino,445), (SMALL_Lite,0) -> (Triple_cappuccino,210), (LARGE_Lite,0) -> (SMALL_LATTE,164), (Special_cappuccino,0) -> (Double_Espresso,1025), (Triple_Espresso,0) -> (Mild_cappuccino,317), (SMALL_MOCHA,0) -> (ICY_Espresso,211), (ICY_Lite,0) -> (Special_MOCHA,806), (Triple_Coffee,0) -> (Triple_Espresso,481), (Double_MOCHA,0) -> (Cold_LATTE,141), (Double_cappuccino,0) -> (Cold_MOCHA,963), (Mild_cappuccino,0) -> (Double_Lite,792), (ICY_LATTE,0) -> (Special_Coffee,675), (Mild_Lite,0) -> 
+(LARGE_Lite,130), (Cold_cappuccino,0) -> (MED_cappuccino,497), (LARGE_Coffee,0) -> (ICY_Lite,566), (Triple_cappuccino,0) -> (MED_LATTE,908), (MED_MOCHA,0) -> (LARGE_LATTE,532), (Cold_Espresso,0) -> (SMALL_MOCHA,790), (Special_Espresso,0) -> (Mild_Espresso,643))
+      */
+    
+      //STEP 4 REDUCEBYKEY
+      //STEP 4 REDUCEBYKEY
+      //STEP 4 REDUCEBYKEY
+      //STEP 4 REDUCEBYKEY
+      //STEP 4 REDUCEBYKEY
+      //STEP 4 REDUCEBYKEY
+      //STEP 4 REDUCEBYKEY
+      //STEP 4 REDUCEBYKEY
+      //STEP 4 REDUCEBYKEY
+      //STEP 4 REDUCEBYKEY
+      //STEP 4 REDUCEBYKEY
+      //STEP 4 REDUCEBYKEY
+      //STEP 4 REDUCEBYKEY
+      // Step 4 ReduceByKey on Keys of the duozipped RDD
+      //var duoReducedRDD = duozippedMapRDD.reduceByKey(())
+      //var duoReducedRDD = duozippedMapRDD.reduceByKey((name, (x1, x2)) => (string, (x1+x2)))
+      /*
+      var duoReducedRDD = duozippedMapRDD.map((({case (arg1, (arg2, arg3 )) => 
+        var y: Int = arg2 + arg3;
+        (arg1, arg2 + arg3)
+      })))
+      */
+      // var duoReducedRDD = duozippedMapRDD.reduceByKey((name, (x1, x2)) => (string, (x1+x2)))
+
+    /*
+      // Step 5 (Array Option)
+      // Array result below
+      var duoArray = duozippedMapRDD.values.toArray
+      println("\n\n\n\n\n\n\n\n\n Vector of beverageMapX + mapRDD is below ")
+      println(duoArray)
+      
+      // Step 5 (Vector Option)
+      // Vector result below
+      var duoVector = duozippedMapRDD.values.toVector
+      //println("\n\n\n\n\n\n\n\n\n Vector of beverageMapX + mapRDD is below ")
+      //println(duoVector)
+    */
+
+      // Step 6 : Add BatchVector to OverallVector
+
+
+
+      //println(rdd.collectAsMap()) //collectAsMap is powerfull RDD > Map function
+      // println(rdd.values.collect().toVector) // Vector(639, 72, 844, 175, 756, 607, 575, 55, 872, 993, 868, 105, 964, 1013, 94, 281, 128, 270, 819, 530, 496, 461, 989, 22, 607, 409, 864, 174, 38, 1037, 835)
+//println(rdd.values.collect().mkString(",")) // Vector(639, 72, 844, 175, 756, 607, 575, 55, 872, 993, 868, 105, 964, 1013, 94, 281, 128, 270, 819, 530, 496, 461, 989, 22, 607, 409, 864, 174, 38, 1037, 835)
+
+      
+//println(vectorHeader)
+
 
       //beverageMap += mergevaluesbykey rdd
 
       //beverageMap
 
-      val xyz = rdd.collect() // : an array containing all elements in this RDD
-      println(xyz.mkString(","))
+      //val xyz = rdd.collect() // : an array containing all elements in this RDD
+      //println(xyz.mkString(","))
 
       // beverageMap.map()
 
@@ -137,7 +256,6 @@ object MainStreaming {
       //   var newCount = currentCount
       //     (beverage, newCount)
       // } )
-      
     })
 
     // day1.csv

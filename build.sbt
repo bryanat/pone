@@ -1,4 +1,4 @@
-ThisBuild / scalaVersion := "2.12.10"
+ThisBuild / scalaVersion := "2.12.15"
 
 lazy val root = project.in(file(".")).
   aggregate(oi.js, oi.jvm).
