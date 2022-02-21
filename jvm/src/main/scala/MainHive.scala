@@ -16,7 +16,7 @@ import scala.collection.mutable.ArrayBuffer
 
 
 object MainHive {
-  def main(args: Array[String]): Unit = {
+  def Kmain(args: Array[String]): Unit = {
   // def Xmain(): Unit = {
     System.setProperty("hadoop.home.dir", "C:\\hadoop")
 
@@ -105,7 +105,6 @@ object MainHive {
       // What is the total number of consumers for Branch1?
       // Branch1 only exists on BranchA
       dfsc.sql("SELECT SUM(CountA.count) AS Total_Consumers_Branch1 FROM CountA JOIN BranchABC AS b ON CountA.beverage = b.beverage WHERE b.branch='Branch1'").show(20)
-      dfsc.sql("SELECT ")
       // What is the number of consumers for the Branch2?
       dfsc.sql("SELECT SUM(CountAC.count) AS Total_Consumers_Branch2 FROM CountAC JOIN BranchABC AS b ON CountAC.beverage = b.beverage WHERE b.branch='Branch2'").show(20)
     // Method used was Type 1: a single table with sub queries.

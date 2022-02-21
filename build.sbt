@@ -20,7 +20,11 @@ lazy val oi = crossProject(JSPlatform, JVMPlatform).in(file(".")).
     libraryDependencies += "org.apache.spark" %%% "spark-hive" % "3.1.2",
     libraryDependencies += "org.apache.spark" %%% "spark-streaming" % "3.1.2",
     libraryDependencies += "org.apache.spark" %%% "spark-mllib" % "3.1.2",
-    
+    // https://mvnrepository.com/artifact/org.mongodb.scala/mongo-scala-driver
+    libraryDependencies += "org.mongodb.scala" %% "mongo-scala-driver" % "2.9.0",
+    // https://mvnrepository.com/artifact/io.netty/netty-all
+    libraryDependencies += "io.netty" % "netty-all" % "4.1.73.Final"
+
     
     ).
     jsSettings(
