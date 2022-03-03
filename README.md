@@ -1,3 +1,5 @@
+# THIS PROJECT NEEDS A LOT OF REFACTORING -bryan
+
 Main two files are:
 MainHive.scala for Hive and Spark SQL
 MainStreaming.scala for Spark Streaming
