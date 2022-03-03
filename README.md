@@ -1,4 +1,4 @@
-# THIS PROJECT NEEDS A LOT OF REFACTORING -bryan
+# THIS PROJECT NEEDS A LOT OF REFACTORING -bryan 3/3/2022 11:00EST
 
 Main two files are:
 MainHive.scala for Hive and Spark SQL
