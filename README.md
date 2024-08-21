@@ -1,4 +1,22 @@
-# THIS PROJECT NEEDS A LOT OF REFACTORING -bryan 3/3/2022 11:00EST
+# Project Summary
+
+**Description**: Demonstrated Hive queries, features, and optimizations using mock data
+
+**Roles and Responsibilities**:
+- Loaded data into HDFS.
+- Loaded from HDFS into Hive by defining a table schema.
+- Returned Spark SQL Dataframes from resulting Hive queries.
+- Created cli menu to run query functions then return to cli menu after a callback via tail recursion.
+- Using Hive for HQL queries, wrote SQL-like statements including joins, where, group by, order by, aggregates, aliases, and table DDL operations to create, alter, and drop database objects.
+- Wrote queries to filter data with aggregates and group by.
+- Combined multiple tables when necessary using various joins.
+- Created partitions, views and indexes to optimize a table.
+- Added information to the metaproperties of the table.
+- Wrote a query to delete a row indirectly by insert overwriting the table with all rows minus the deleted row.
+
+**Key Technologies**: Hive HDFS, Hadoop, Scala, Spark, Spark SQL
+
+## THIS PROJECT NEEDS A LOT OF REFACTORING -bryan 3/3/2022 11:00EST
 
 Main two files are:
 MainHive.scala for Hive and Spark SQL
@@ -134,9 +152,9 @@ P.S. I'm excited about the capabilities of Spark's StreamingContext (Spark Strea
 
 
 
-# Are you aware of how you can visually present your scenario? (input and output : data and answer)
+## Are you aware of how you can visually present your scenario? (input and output : data and answer)
 
-# CHALLENGE BEGINNINGS IN UNDERSTANDING THE DATA
+## CHALLENGE BEGINNINGS IN UNDERSTANDING THE DATA
 "challenge is in the data,"
 "understand your data before you start this,"
 "the data is common amongst all of you"
@@ -144,8 +162,8 @@ P.S. I'm excited about the capabilities of Spark's StreamingContext (Spark Strea
   branchX is the foreign key
 
  *look at growth/acceleration, transactions declining prune, transactions inclining grow
-# Future Query ~ [PREDICTOR] Query ~ [FORECAST] Query
-#  ? IS THERE ANYTHING YOU UNDERSTAND ABOUT THE FUTURE OF THIS DATA ?
+## Future Query ~ [PREDICTOR] Query ~ [FORECAST] Query
+##  ? IS THERE ANYTHING YOU UNDERSTAND ABOUT THE FUTURE OF THIS DATA ?
   ? after 2024 will Branch9 still have Triple_cappuccino?
   ? in the future should certain Branches be removed?
   ? is any one branch better than any two combined branches in the future"
