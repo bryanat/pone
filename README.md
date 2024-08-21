@@ -16,6 +16,8 @@
 
 **Key Technologies**: Hive HDFS, Hadoop, Scala, Spark, Spark SQL
 
+![](docs/images/hive-spark-graphic.png)
+
 ## THIS PROJECT NEEDS A LOT OF REFACTORING -bryan 3/3/2022 11:00EST
 
 Main two files are:
